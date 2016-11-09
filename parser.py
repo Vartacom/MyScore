@@ -5,6 +5,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import WebDriverException
 
 url_main = 'http://myscore.ru'
 url_match = 'http://www.myscore.ru/match/{0}/#match-summary'
@@ -68,12 +69,15 @@ for el in elements:
 	ids.append(id_text.split('_')[2])
 print(ids)
 for id in ids[0:5]:
-	driver.get(url_match.format(id))
-	element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//a[@id="a-match-head-2-head"]')))
-	element.click()
-	WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//a[text()="Итого"]')))
-	stats = parse_head_2_head_page(driver)
-	print(repr(stats).decode('unicode-escape'))
+	try:
+		driver.get(url_match.format(id))
+		element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//a[@id="a-match-head-2-head"]')))
+		element.click()
+		WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//a[text()="Итого"]')))
+		stats = parse_head_2_head_page(driver)
+		print(repr(stats).decode('unicode-escape'))
+	except WebDriverException:
+		driver.save_screenshot('{0}.png'.format(id))
 	# scores = filter((lambda score: score), map((lambda el: el.text), driver.find_elements_by_xpath('//span[@class="score"]/strong')))
 	# driver.save_screenshot('{0}.png'.format(id))
 	# print(driver.title)
