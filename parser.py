@@ -12,6 +12,8 @@ url_match = 'http://www.myscore.ru/match/{0}/#match-summary'
 
 game_result = u'{0} {1} {2} {3} : {4} {5}'
 
+analisis = u'{0} - {1} Upper games: {2} Total games: {3} Upper probability: {4:.2}'
+
 def encode(unicode):
 	return unicode.encode('utf-16')
 
@@ -42,7 +44,7 @@ def parse_game_row(row):
 
 def parse_head_2_head_page(driver):
 	stats = {'home team stats': [], 'guest team stats': [], 'mutual games stats': []}
-	team_names = map((lambda el: el.text), driver.find_elements_by_xpath('//span[class="tname"]/a'))
+	team_names = map((lambda el: el.text), driver.find_elements_by_xpath('//span[@class="tname"]/a'))
 	if len(team_names) == 2:
 		stats['home team name'] = team_names[0]
 		stats['guest team name'] = team_names[1]
@@ -56,6 +58,24 @@ def parse_head_2_head_page(driver):
 	for game_row in mutual_game_rows[0:5]:
 		stats['mutual games stats'].append(parse_game_row(game_row))
 	return stats
+
+def count(games):
+	upper_games_count = 0
+	total_games = 0
+	for game in games:
+		total_games = total_games + 1
+		if game['home_score'] + game['guest_score'] > 2:
+			upper_games_count = upper_games_count + 1
+	return (upper_games_count, total_games)
+
+def analyze(stats):
+	home_team_analisis = count(stats['home team stats'])
+	guest_team_analisis = count(stats['guest team stats'])
+	mutual_games_analisis = count(stats['mutual games stats'])
+	upper_games_count = home_team_analisis[0] + guest_team_analisis[0] + mutual_games_analisis[0]
+	total_games = home_team_analisis[1] + guest_team_analisis[1] + mutual_games_analisis[1]
+	print(analisis.format(stats['home team name'], stats['guest team name'], upper_games_count, total_games, float(upper_games_count)/float(total_games)))
+
 
 driver = webdriver.PhantomJS()
 driver.set_window_size(1280, 1024)
@@ -75,7 +95,8 @@ for id in ids[0:5]:
 		element.click()
 		WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//a[text()="Итого"]')))
 		stats = parse_head_2_head_page(driver)
-		print(repr(stats).decode('unicode-escape'))
+		analyze(stats)
+		# print(repr(stats).decode('unicode-escape'))
 	except WebDriverException:
 		driver.save_screenshot('{0}.png'.format(id))
 	# scores = filter((lambda score: score), map((lambda el: el.text), driver.find_elements_by_xpath('//span[@class="score"]/strong')))
